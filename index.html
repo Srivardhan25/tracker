@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRIVARDHAN K S — Academic Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0eff8;
+    --muted: #6b6a7e;
+    --pass: #22d3a0;
+    --pass-bg: rgba(34,211,160,0.1);
+    --fail: #f87171;
+    --fail-bg: rgba(248,113,113,0.1);
+    --pending: #7c9ef5;
+    --pending-bg: rgba(124,158,245,0.1);
+    --ongoing: #fbbf24;
+    --ongoing-bg: rgba(251,191,36,0.1);
+    --accent: #7c9ef5;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,15,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .sync-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sync-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .sync-btn .dot { width: 6px; height: 6px; background: var(--pass); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+  .hero { margin-bottom: 2.5rem; }
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--muted); font-size: 14px; margin-top: 6px; font-family: var(--mono); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 1.25rem 1.5rem;
+    transition: background 0.2s;
+  }
+  .stat-card:hover { background: var(--surface2); }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-num {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .stat-num.pass { color: var(--pass); }
+  .stat-num.fail { color: var(--fail); }
+  .stat-num.pending { color: var(--pending); }
+  .stat-num.ongoing { color: var(--ongoing); }
+  .stat-num.total { color: var(--text); }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--pass), var(--accent));
+    transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .filter-btn.active-all { border-color: var(--text); color: var(--text); background: rgba(255,255,255,0.05); }
+  .filter-btn.active-pass { border-color: var(--pass); color: var(--pass); background: var(--pass-bg); }
+  .filter-btn.active-fail { border-color: var(--fail); color: var(--fail); background: var(--fail-bg); }
+  .filter-btn.active-pending { border-color: var(--pending); color: var(--pending); background: var(--pending-bg); }
+  .filter-btn.active-ongoing { border-color: var(--ongoing); color: var(--ongoing); background: var(--ongoing-bg); }
+
+  .search-wrap { position: relative; }
+  .search-wrap input {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 7px 12px 7px 32px;
+    border-radius: 4px;
+    outline: none;
+    width: 220px;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead tr {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border2);
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 12px 16px;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--text); }
+  th .sort-icon { margin-left: 4px; opacity: 0.4; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface); }
+
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .code-cell {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .name-cell { font-weight: 400; color: var(--text); }
+
+  .grade-cell {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
+  .badge-pass { background: var(--pass-bg); color: var(--pass); border: 1px solid rgba(34,211,160,0.2); }
+  .badge-pass::before { background: var(--pass); }
+  .badge-fail { background: var(--fail-bg); color: var(--fail); border: 1px solid rgba(248,113,113,0.2); }
+  .badge-fail::before { background: var(--fail); }
+  .badge-pending { background: var(--pending-bg); color: var(--pending); border: 1px solid rgba(124,158,245,0.2); }
+  .badge-pending::before { background: var(--pending); }
+  .badge-ongoing { background: var(--ongoing-bg); color: var(--ongoing); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-ongoing::before { background: var(--ongoing); animation: pulse 1.5s infinite; }
+
+  .edit-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 440px;
+    margin: 1rem;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+  .modal h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+  .modal h3 span { color: var(--muted); font-weight: 400; }
+
+  .field { margin-bottom: 1rem; }
+  .field label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 5px;
+    font-family: var(--sans);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface2); }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.5rem; }
+  .btn-save {
+    flex: 1;
+    background: var(--accent);
+    color: #0a0a1a;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-cancel {
+    flex: 1;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    padding: 10px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+  /* Sheet config panel */
+  .sheet-config {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .sheet-config .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .sheet-config input {
+    flex: 1;
+    min-width: 200px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 7px 12px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .sheet-config input:focus { border-color: var(--accent); }
+  .sheet-config input::placeholder { color: var(--muted); }
+  .btn-connect {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--accent);
+    color: #0a0a1a;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .btn-connect:hover { opacity: 0.85; }
+
+  .sheet-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .sheet-status.connected { background: var(--pass-bg); color: var(--pass); }
+  .sheet-status.disconnected { background: rgba(255,255,255,0.04); color: var(--muted); }
+
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .last-sync {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    margin-top: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    margin-top: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  footer p {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SIMATS / <span>SRIVARDHAN K S</span> / AIML 2023</div>
+  <button class="sync-btn" onclick="syncSheet()"><span class="dot"></span> SYNC SHEET</button>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>Academic<br><span>Progress Tracker</span></h1>
+    <p>// AIML 2023 Curriculum — Last updated: <span id="last-updated">—</span></p>
+  </div>
+
+  <!-- Google Sheet Config -->
+  <div class="sheet-config">
+    <span class="label">⬡ Google Sheet URL</span>
+    <input type="text" id="sheet-url" placeholder="Paste your published Google Sheet CSV URL here..." />
+    <button class="btn-connect" onclick="connectSheet()">CONNECT</button>
+    <span class="sheet-status disconnected" id="sheet-status">NOT CONNECTED</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">// Total</div>
+      <div class="stat-num total" id="stat-total">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// Passed</div>
+      <div class="stat-num pass" id="stat-pass">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// Ongoing</div>
+      <div class="stat-num ongoing" id="stat-ongoing">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// Retake</div>
+      <div class="stat-num fail" id="stat-fail">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// Pending</div>
+      <div class="stat-num pending" id="stat-pending">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">// Completion</div>
+      <div class="stat-num pass" id="stat-pct">0%</div>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="filters" id="filters">
+      <button class="filter-btn active-all" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('pass',this)">Passed</button>
+      <button class="filter-btn" onclick="setFilter('ongoing',this)">Ongoing</button>
+      <button class="filter-btn" onclick="setFilter('fail',this)">Retake</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search" placeholder="Search courses..." oninput="render()" />
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('code')">Code <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('name')">Course <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('status')">Status <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('grade')">Grade <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('month')">Date <span class="sort-icon">↕</span></th>
+          <th>Edit</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="empty" class="empty" style="display:none">// No courses match your filter</div>
+  </div>
+  <div class="last-sync" id="last-sync-text"></div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>EDIT COURSE <span id="modal-code"></span></h3>
+    <div class="field">
+      <label>Status</label>
+      <select id="edit-status">
+        <option value="pass">Passed</option>
+        <option value="ongoing">Ongoing</option>
+        <option value="fail">Retake needed</option>
+        <option value="pending">Pending</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Grade</label>
+      <input type="text" id="edit-grade" placeholder="S / A / B / C / F / —" maxlength="2" />
+    </div>
+    <div class="field">
+      <label>Month & Year</label>
+      <input type="text" id="edit-month" placeholder="e.g. May-2026" />
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <input type="text" id="edit-note" placeholder="Optional note..." />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">CANCEL</button>
+      <button class="btn-save" onclick="saveEdit()">SAVE CHANGES</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>SIMATS Engineering · AIML 2023 · Saveetha University</p>
+  <p>Built for <span style="color:var(--accent)">SRIVARDHAN K S</span> · <a href="#" onclick="exportCSV()">↓ Export CSV</a></p>
+</footer>
+
+<script>
+const STORAGE_KEY = 'aiml_tracker_v2';
+let courses = [], currentFilter = 'all', sortKey = 'code', sortDir = 1, editIdx = -1;
+
+const defaultCourses = [
+  {code:"BTA01",name:"Biology & Environmental Science for Engineers",status:"pass",grade:"B",month:"July-2023",note:""},
+  {code:"CSA02",name:"C Programming",status:"pass",grade:"B",month:"December-2023",note:""},
+  {code:"CSA03",name:"Data Structures",status:"pass",grade:"A",month:"October-2024",note:"Earlier fail recorded"},
+  {code:"CSA04",name:"Operating Systems",status:"pending",grade:"—",month:"",note:""},
+  {code:"CSA05",name:"Database Management Systems",status:"pass",grade:"A",month:"February-2025",note:""},
+  {code:"CSA06",name:"Design & Analysis of Algorithms",status:"pass",grade:"B",month:"July-2024",note:""},
+  {code:"CSA07",name:"Computer Networks",status:"pass",grade:"A",month:"January-2025",note:""},
+  {code:"CSA08",name:"Python Programming",status:"pass",grade:"B",month:"June-2024",note:""},
+  {code:"CSA09",name:"Programming in Java",status:"pending",grade:"—",month:"",note:""},
+  {code:"CSA10",name:"Software Engineering",status:"pass",grade:"A",month:"January-2025",note:""},
+  {code:"CSA12",name:"Computer Architecture",status:"pending",grade:"—",month:"",note:""},
+  {code:"CSA14",name:"Compiler Design",status:"pass",grade:"C",month:"April-2025",note:""},
+  {code:"CSA15",name:"Cloud Computing & Big Data Analytics",status:"pass",grade:"B",month:"July-2025",note:""},
+  {code:"CSA16",name:"Data Warehousing & Data Mining",status:"fail",grade:"F",month:"April-2025",note:"Retake needed"},
+  {code:"DSA01",name:"Object Oriented Programming with C++",status:"pass",grade:"B",month:"March-2024",note:""},
+  {code:"DSA03",name:"Natural Language Processing",status:"pending",grade:"—",month:"",note:"Prereq: MLA02"},
+  {code:"ECA47",name:"Principles of Digital System Design",status:"fail",grade:"F",month:"October-2023",note:"Retake needed"},
+  {code:"ITA04",name:"Statistics with R Programming",status:"fail",grade:"F",month:"April-2025",note:"Retake needed"},
+  {code:"ITA05",name:"Computer Vision",status:"pass",grade:"B",month:"February-2026",note:""},
+  {code:"MLA01",name:"Artificial Intelligence & Expert Systems",status:"pass",grade:"A",month:"August-2025",note:""},
+  {code:"MLA02",name:"Fundamentals of Machine Learning",status:"fail",grade:"F",month:"August-2025",note:"Retake needed — prereq for NLP & RL"},
+  {code:"MLA03",name:"Reinforcement Learning",status:"pending",grade:"—",month:"",note:"Prereq: MLA02"},
+  {code:"MLA04",name:"Deep Learning",status:"pending",grade:"—",month:"",note:""},
+  {code:"UBA01",name:"Engineering Mathematics I",status:"pass",grade:"B",month:"September-2023",note:""},
+  {code:"UBA04",name:"Discrete Mathematics",status:"pass",grade:"A",month:"June-2025",note:""},
+  {code:"UBA06",name:"Applied Mathematics",status:"fail",grade:"F",month:"February-2026",note:"Retake needed"},
+  {code:"UBA10",name:"Numerical Methods",status:"pending",grade:"—",month:"",note:""},
+  {code:"UBA28",name:"Professional Ethics & Legal Practices",status:"pass",grade:"C",month:"July-2023",note:""},
+  {code:"UBA29",name:"Technical English",status:"pending",grade:"—",month:"",note:""},
+  {code:"UBA47",name:"Statistics & Linear Algebra",status:"pending",grade:"—",month:"",note:""},
+  {code:"UBA48",name:"Engineering Physics",status:"pass",grade:"C",month:"January-2024",note:""},
+  {code:"UBA49",name:"Engineering Chemistry",status:"pass",grade:"B",month:"October-2023",note:""},
+  {code:"SPIC4",name:"Research Project",status:"pending",grade:"—",month:"",note:""},
+  {code:"SPIC5",name:"Industrial Internship I",status:"pass",grade:"A",month:"May-2026",note:""},
+  {code:"SPIC6",name:"Industrial Internship II",status:"pass",grade:"A",month:"May-2026",note:""},
+  {code:"SPIC9",name:"Professional Certification",status:"pass",grade:"A",month:"May-2026",note:"Oracle DBMS"},
+];
+
+function load() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  courses = saved ? JSON.parse(saved) : defaultCourses;
+  updateStats();
+  render();
+  document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const sheetUrl = localStorage.getItem('sheet_url');
+  if(sheetUrl) {
+    document.getElementById('sheet-url').value = sheetUrl;
+    document.getElementById('sheet-status').textContent = 'CONNECTED';
+    document.getElementById('sheet-status').className = 'sheet-status connected';
+  }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+  document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+}
+
+function updateStats() {
+  const pass = courses.filter(c=>c.status==='pass').length;
+  const fail = courses.filter(c=>c.status==='fail').length;
+  const pending = courses.filter(c=>c.status==='pending').length;
+  const ongoing = courses.filter(c=>c.status==='ongoing').length;
+  const total = courses.length;
+  const pct = Math.round((pass/total)*100);
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pass').textContent = pass;
+  document.getElementById('stat-fail').textContent = fail;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-ongoing').textContent = ongoing;
+  document.getElementById('stat-pct').textContent = pct + '%';
+  setTimeout(()=>{ document.getElementById('progress-fill').style.width = pct + '%'; }, 100);
+}
+
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  return courses.filter(c => {
+    const matchFilter = currentFilter === 'all' || c.status === currentFilter;
+    const matchSearch = !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  }).sort((a,b) => {
+    let av = a[sortKey]||'', bv = b[sortKey]||'';
+    return av < bv ? -sortDir : av > bv ? sortDir : 0;
+  });
+}
+
+function render() {
+  const list = getFiltered();
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty');
+  if(!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  tbody.innerHTML = list.map((c,i) => {
+    const realIdx = courses.indexOf(c);
+    const badgeMap = {
+      pass:'<span class="badge badge-pass">PASS</span>',
+      fail:'<span class="badge badge-fail">RETAKE</span>',
+      pending:'<span class="badge badge-pending">PENDING</span>',
+      ongoing:'<span class="badge badge-ongoing">ONGOING</span>'
+    };
+    const gradeColor = {S:'#22d3a0',A:'#22d3a0',B:'#7c9ef5',C:'#fbbf24',F:'#f87171'}[c.grade] || 'var(--muted)';
+    return `<tr>
+      <td class="code-cell">${c.code}</td>
+      <td class="name-cell">${c.name}${c.note ? `<br><span style="font-size:11px;color:var(--muted)">${c.note}</span>` : ''}</td>
+      <td>${badgeMap[c.status]||''}</td>
+      <td class="grade-cell" style="color:${gradeColor}">${c.grade}</td>
+      <td style="font-size:12px;color:var(--muted);font-family:var(--mono)">${c.month||'—'}</td>
+      <td><button class="edit-btn" onclick="openEdit(${realIdx})">EDIT</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+  btn.className = `filter-btn active-${f}`;
+  render();
+}
+
+function sortBy(key) {
+  if(sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+  render();
+}
+
+function openEdit(idx) {
+  editIdx = idx;
+  const c = courses[idx];
+  document.getElementById('modal-code').textContent = '// ' + c.code;
+  document.getElementById('edit-status').value = c.status;
+  document.getElementById('edit-grade').value = c.grade === '—' ? '' : c.grade;
+  document.getElementById('edit-month').value = c.month;
+  document.getElementById('edit-note').value = c.note;
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  editIdx = -1;
+}
+
+function saveEdit() {
+  if(editIdx < 0) return;
+  const status = document.getElementById('edit-status').value;
+  const grade = document.getElementById('edit-grade').value.toUpperCase() || '—';
+  const month = document.getElementById('edit-month').value;
+  const note = document.getElementById('edit-note').value;
+  courses[editIdx] = {...courses[editIdx], status, grade, month, note};
+  save();
+  updateStats();
+  render();
+  closeModal();
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if(e.target === this) closeModal();
+});
+
+function connectSheet() {
+  const url = document.getElementById('sheet-url').value.trim();
+  if(!url) return;
+  localStorage.setItem('sheet_url', url);
+  document.getElementById('sheet-status').textContent = 'CONNECTED';
+  document.getElementById('sheet-status').className = 'sheet-status connected';
+  syncSheet();
+}
+
+async function syncSheet() {
+  const url = localStorage.getItem('sheet_url');
+  if(!url) { alert('Please connect a Google Sheet URL first.'); return; }
+  const btn = document.querySelector('.sync-btn');
+  btn.textContent = '⟳ SYNCING...';
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    const rows = text.trim().split('\n').slice(1);
+    const updated = rows.map(row => {
+      const cols = row.split(',');
+      return {
+        code: (cols[0]||'').trim(),
+        name: (cols[1]||'').trim(),
+        status: (cols[2]||'pending').trim().toLowerCase(),
+        grade: (cols[3]||'—').trim() || '—',
+        month: (cols[4]||'').trim(),
+        note: (cols[5]||'').trim()
+      };
+    }).filter(c => c.code);
+    if(updated.length) {
+      courses = updated;
+      save();
+      updateStats();
+      render();
+      document.getElementById('last-sync-text').textContent = '// Last synced from sheet: ' + new Date().toLocaleTimeString('en-IN');
+    }
+  } catch(e) {
+    alert('Could not sync sheet. Make sure the URL is a published CSV link.');
+  }
+  btn.innerHTML = '<span class="dot"></span> SYNC SHEET';
+}
+
+function exportCSV() {
+  const header = 'Code,Course,Status,Grade,Month,Notes';
+  const rows = courses.map(c => `${c.code},"${c.name}",${c.status},${c.grade},${c.month},"${c.note}"`);
+  const blob = new Blob([[header,...rows].join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'AIML_Progress_Srivardhan.csv';
+  a.click();
+}
+
+load();
+</script>
+</body>
+</html>
