@@ -662,7 +662,7 @@ function load() {
   updateStats();
   render();
   document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  const sheetUrl = localStorage.getItem('sheet_url');
+  const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRVJYx73D3kgAnMka35KWMhLPyqGoXzEOKyy6sIILtdu9BLKWsf8TehC_B3scHhlISYcwqhoaOtkQzn/pub?gid=0&single=true&output=csv';
   if(sheetUrl) {
     document.getElementById('sheet-url').value = sheetUrl;
     document.getElementById('sheet-status').textContent = 'CONNECTED';
@@ -787,7 +787,7 @@ function connectSheet() {
 }
 
 async function syncSheet() {
-  const url = localStorage.getItem('sheet_url');
+  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRVJYx73D3kgAnMka35KWMhLPyqGoXzEOKyy6sIILtdu9BLKWsf8TehC_B3scHhlISYcwqhoaOtkQzn/pub?gid=0&single=true&output=csv';
   if(!url) { alert('Please connect a Google Sheet URL first.'); return; }
   const btn = document.querySelector('.sync-btn');
   btn.textContent = '⟳ SYNCING...';
