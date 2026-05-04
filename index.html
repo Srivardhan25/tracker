@@ -616,6 +616,8 @@
 <script>
 const STORAGE_KEY = 'aiml_tracker_v2';
 let courses = [], currentFilter = 'all', sortKey = 'code', sortDir = 1, editIdx = -1;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_cgS9L0ZydzVJAfflt26-kyEf16CrUPQhvakwyKuj0JZr90ebHqZpKCzUxyfm4Vg/exec';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRVJYx73D3kgAnMka35KWMhLPyqGoXzEOKyy6sIILtdu9BLKWsf8TehC_B3scHhlISYcwqhoaOtkQzn/pub?gid=0&single=true&output=csv';
 
 const defaultCourses = [
   {code:"BTA01",name:"Biology & Environmental Science for Engineers",status:"pass",grade:"B",month:"July-2023",note:""},
@@ -662,12 +664,11 @@ function load() {
   updateStats();
   render();
   document.getElementById('last-updated').textContent = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
-  const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRVJYx73D3kgAnMka35KWMhLPyqGoXzEOKyy6sIILtdu9BLKWsf8TehC_B3scHhlISYcwqhoaOtkQzn/pub?gid=0&single=true&output=csv';
-  if(sheetUrl) {
-    document.getElementById('sheet-url').value = sheetUrl;
-    document.getElementById('sheet-status').textContent = 'CONNECTED';
-    document.getElementById('sheet-status').className = 'sheet-status connected';
-  }
+  document.getElementById('sheet-status').textContent = 'CONNECTED';
+  document.getElementById('sheet-status').className = 'sheet-status connected';
+  document.getElementById('sheet-url').value = CSV_URL;
+  // Auto sync on load
+  syncSheet();
 }
 
 function save() {
@@ -759,17 +760,32 @@ function closeModal() {
   editIdx = -1;
 }
 
-function saveEdit() {
+async function saveEdit() {
   if(editIdx < 0) return;
   const status = document.getElementById('edit-status').value;
   const grade = document.getElementById('edit-grade').value.toUpperCase() || '—';
   const month = document.getElementById('edit-month').value;
   const note = document.getElementById('edit-note').value;
+  const code = courses[editIdx].code;
   courses[editIdx] = {...courses[editIdx], status, grade, month, note};
   save();
   updateStats();
   render();
   closeModal();
+
+  // Push live to Google Sheet
+  const saveBtn = document.querySelector('.btn-save');
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code, status, grade, month, note})
+    });
+    document.getElementById('last-sync-text').textContent = '// Sheet updated live: ' + new Date().toLocaleTimeString('en-IN');
+  } catch(e) {
+    document.getElementById('last-sync-text').textContent = '// Saved locally (sheet sync failed)';
+  }
 }
 
 // Close modal on overlay click
@@ -787,12 +803,10 @@ function connectSheet() {
 }
 
 async function syncSheet() {
-  const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRVJYx73D3kgAnMka35KWMhLPyqGoXzEOKyy6sIILtdu9BLKWsf8TehC_B3scHhlISYcwqhoaOtkQzn/pub?gid=0&single=true&output=csv';
-  if(!url) { alert('Please connect a Google Sheet URL first.'); return; }
   const btn = document.querySelector('.sync-btn');
   btn.textContent = '⟳ SYNCING...';
   try {
-    const res = await fetch(url);
+    const res = await fetch(CSV_URL);
     const text = await res.text();
     const rows = text.trim().split('\n').slice(1);
     const updated = rows.map(row => {
@@ -814,7 +828,7 @@ async function syncSheet() {
       document.getElementById('last-sync-text').textContent = '// Last synced from sheet: ' + new Date().toLocaleTimeString('en-IN');
     }
   } catch(e) {
-    alert('Could not sync sheet. Make sure the URL is a published CSV link.');
+    document.getElementById('last-sync-text').textContent = '// Could not sync sheet';
   }
   btn.innerHTML = '<span class="dot"></span> SYNC SHEET';
 }
