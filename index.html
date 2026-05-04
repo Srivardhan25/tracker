@@ -516,16 +516,20 @@
       <div class="stat-num total" id="stat-total">0</div>
     </div>
     <div class="stat-card">
+      <div class="stat-label">// Completed</div>
+      <div class="stat-num pass" id="stat-completed">0</div>
+    </div>
+    <div class="stat-card">
       <div class="stat-label">// Passed</div>
       <div class="stat-num pass" id="stat-pass">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">// Ongoing</div>
-      <div class="stat-num ongoing" id="stat-ongoing">0</div>
+      <div class="stat-label">// Arrear</div>
+      <div class="stat-num fail" id="stat-fail">0</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">// Retake</div>
-      <div class="stat-num fail" id="stat-fail">0</div>
+      <div class="stat-label">// Ongoing</div>
+      <div class="stat-num ongoing" id="stat-ongoing">0</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">// Pending</div>
@@ -681,10 +685,12 @@ function updateStats() {
   const fail = courses.filter(c=>c.status==='fail').length;
   const pending = courses.filter(c=>c.status==='pending').length;
   const ongoing = courses.filter(c=>c.status==='ongoing').length;
+  const completed = pass + fail;
   const total = courses.length;
   const pct = Math.round((pass/total)*100);
 
   document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-completed').textContent = completed;
   document.getElementById('stat-pass').textContent = pass;
   document.getElementById('stat-fail').textContent = fail;
   document.getElementById('stat-pending').textContent = pending;
